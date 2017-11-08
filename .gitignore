@@ -1,0 +1,4 @@
+data/*
+PSPNet/weights/*
+PSPNet/__pycache__/*
+.idea/*
