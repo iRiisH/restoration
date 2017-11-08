@@ -1,4 +1,10 @@
-data/*
-PSPNet/weights/*
-PSPNet/__pycache__/*
+*.npy
+*.pyc
+*.png
+*.caffemodel
+*.prototxt
+*.h5
+*.json
+*.jpg
 .idea/*
+PSPNet/__pycache__/*
