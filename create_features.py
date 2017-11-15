@@ -95,28 +95,29 @@ def compute_features(img, filename=None, network=None):
     return feats
 
 
-if __name__ == '__main__':
+def segment_database():
+    filenames = []
+    with open('list.txt', 'r') as f:
+        for line in f:
+            filenames.append(line[:-1])
     sess = tf.Session()
     K.set_session(sess)
-    input_path = os.path.join(os.getcwd(), '3.jpg')
     with sess.as_default():
-        img = misc.imread(input_path)
         model = 'pspnet101_voc2012'
-
         pspnet = PSPNet101(nb_classes=21, input_shape=(473, 473),
                            weights=model)
+        bar = progressbar.ProgressBar()
+        n = len(filenames)
+        for i in bar(range(n)):
+            filename = filenames[i]
+            input_path = os.path.join('data', 'batch', filename)
+            img = misc.imread(input_path)
+            class_scores = predict_multi_scale(img, pspnet, EVALUATION_SCALES, False, False)
+            class_image = np.argmax(class_scores, axis=2)
+            colored_class_image = utils.color_class_image(class_image, model)
+            dst_path = os.path.join('data', 'seg', filename)
+            misc.imsave(dst_path, colored_class_image)
 
-        class_scores = predict_multi_scale(img, pspnet, EVALUATION_SCALES, False, False)
 
-        print("Writing results...")
-
-        class_image = np.argmax(class_scores, axis=2)
-        pm = np.max(class_scores, axis=2)
-        colored_class_image = utils.color_class_image(class_image, model)
-        # colored_class_image is [0.0-1.0] img is [0-255]
-        alpha_blended = 0.5 * colored_class_image + 0.5 * img
-        misc.imsave('test' + "_seg.jpg", colored_class_image)
-        # misc.imsave(filename + "_probs" + ext, pm)
-        # cv2.imshow('test', alpha_blended)
-        # cv2.waitKey(0)
-        # misc.imsave('test' + "_seg_blended.jpg", alpha_blended)
+if __name__ == '__main__':
+    segment_database()
