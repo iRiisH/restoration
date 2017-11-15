@@ -52,11 +52,17 @@ def segment_database():
         for i in bar(range(n)):
             filename = filenames[i]
             input_path = os.path.join('data', 'batch', filename)
+            dst_path = os.path.join('data', 'seg', filename)
+            if os.path.isfile(dst_path):
+                continue  # the current image has already been segmented
             img = misc.imread(input_path)
+            if len(img.shape) <= 2:
+                print('{} DISCARDED: INCORRECT DIMENSION/ GRAYSCALE IMAGE'.format(filename))
+                continue
             class_scores = predict_multi_scale(img, pspnet, EVALUATION_SCALES, False, False)
             class_image = np.argmax(class_scores, axis=2)
             colored_class_image = utils.color_class_image(class_image, model)
-            dst_path = os.path.join('data', 'seg', filename)
+
             misc.imsave(dst_path, colored_class_image)
 
 
