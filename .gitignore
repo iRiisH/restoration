@@ -7,4 +7,5 @@
 *.json
 *.jpg
 .idea/*
+data/*
 PSPNet/__pycache__/*

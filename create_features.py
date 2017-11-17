@@ -9,6 +9,7 @@ from PSPNet.pspnet import PSPNet50, PSPNet101, predict_multi_scale
 from keras import backend as K
 from skimage.feature import daisy
 from collections import namedtuple
+import progressbar
 
 Label = namedtuple('Label', [
     'name',
@@ -40,13 +41,15 @@ VOC_LABELS = [Label('background', 0, (0, 0, 0)),
               Label('train', 19, (128, 192, 0)),
               Label('tvmonitor', 20, (0, 64, 128)),
               Label('void', 21, (128, 64, 12))]
+VOC_COLORS = [label[2] for label in VOC_LABELS]
+VOC_NAMES = [label[0] for label in VOC_LABELS]
 
 
 def compute_daisy(img):
     """ computes DAISY features of the image """
     radius = 10
     padd_img = np.pad(img, ((radius, radius), (radius, radius)), 'mean')
-    d = daisy(img, step=1, radius=58, rings=2, histograms=6, orientations=8)
+    d = daisy(padd_img, step=1, radius=radius, rings=2, histograms=6, orientations=8)
     return d
 
 
@@ -69,30 +72,54 @@ def compute_seg(network, img):
     return class_scores
 
 
+def color_cat(c1):
+    """ returns the category associated to the color in the jpg file """
+    dists = [np.linalg.norm(c1 - c2) for c2 in VOC_COLORS]
+    return np.argmin(dists)
+
+
 def get_seg(filename):
     """ loads the segmentation result for a given filename """
     jpg = cv2.imread(os.path.join('data', 'seg', filename))
-    voc_colors = list(zip(VOC_LABELS[:]['color'], VOC_LABELS[:]['id']))
+    jpg = np.flip(jpg, axis=2)
     m, n = jpg.shape[:2]
+    n_cl = len(VOC_COLORS)
+    tile = np.tile(jpg, (n_cl, 1, 1)).reshape((n_cl, m, n, 3))
+    dist = np.zeros((n_cl, m, n), dtype=np.float)
+    for i in range(n_cl):
+        dist[i] = np.linalg.norm(np.subtract(tile[i], VOC_COLORS[i]), axis=2)
+
+    category = np.argmin(dist, axis=0)
+    # img = utils.color_class_image(category, 'voc')
+    # misc.imshow(img)
+    m, n = category.shape
+    res_vec = np.zeros((m, n, len(VOC_LABELS)), dtype=np.float)
     for i in range(m):
         for j in range(n):
-            r, g, b = img[i, j]
-            cl = colorsys.rgb_to_hsv(r, g, b)[0]
-            category = int(cl * (360./137.5))
+            res_vec[i, j, category[i, j]] = 1.
+    return res_vec
 
 
 def compute_features(img, filename=None, network=None):
     """ compute the pyramid of features for a given image, or loads it
     if a filename is provided """
-    if img is None:
-        img = cv2.imread(os.path.join('data', 'batch', filename), 0)
+    if filename is None:
+        if img is None:
+            raise ValueError()
         seg = compute_seg(network, img)
     else:
+        print('loading...')
         seg = get_seg(filename)
+        if img is None:
+            img = cv2.imread(os.path.join('data', 'batch', filename), 0)
+    m, n = img.shape[:2]
+    print('segmentation done')
     neighb = compute_neighb(img)
+    print('neighbourhood created')
     daisy = compute_daisy(img)
+    print('daisy done')
     feats = np.concatenate((neighb, daisy, seg), axis=2)
-    return feats
+    return feats.reshape((m*n, feats.shape[2]))
 
 
 def segment_database():
@@ -125,5 +152,25 @@ def segment_database():
             misc.imsave(dst_path, colored_class_image)
 
 
+def test_classes():
+    n = int(np.sqrt(len(VOC_NAMES)))+1
+    t = np.zeros((n, n, 3))
+    fin = False
+    for i in range(n):
+        if fin:
+            break
+        for j in range(n):
+            k = n*i+j
+            if k >= len(VOC_NAMES):
+                fin=True
+                break
+            t[i, j] = VOC_COLORS[k]
+    misc.imshow(t)
+
+
 if __name__ == '__main__':
-    segment_database()
+    compute_features(None, 'sun_aagzfdhtedskkkvb.jpg')
+    # test_classes()
+    # t=misc.imread('data/seg/sun_aagzfdhtedskkkvb.jpg')
+    # print(t)
+    # misc.imshow(t)
