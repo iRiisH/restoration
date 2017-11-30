@@ -36,6 +36,7 @@ class SIFTFlowSegDataLayer(caffe.Layer):
         # config
         params = eval(self.param_str)
         self.siftflow_dir = params['siftflow_dir']
+        print(self.siftflow_dir)
         self.split = params['split']
         self.mean = np.array((114.578, 115.294, 108.353), dtype=np.float32)
         self.random = params.get('randomize', True)

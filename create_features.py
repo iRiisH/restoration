@@ -49,7 +49,7 @@ def compute_daisy(img):
     """ computes DAISY features of the image """
     radius = 10
     padd_img = np.pad(img, ((radius, radius), (radius, radius)), 'mean')
-    d = daisy(padd_img, step=1, radius=radius, rings=2, histograms=6, orientations=8)
+    d = daisy(padd_img, step=1, radius=radius, rings=1, histograms=3, orientations=8)
     return d
 
 

@@ -51,7 +51,7 @@ class NeuralNet:
     implements a siamese neural network based on a MLP architecture
     """
     def __init__(self):
-        self.btneck_shape = 104
+        self.btneck_shape = 114
         self.learning_rate = 0.001
 
         with tf.name_scope('input'):
