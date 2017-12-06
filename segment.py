@@ -1,7 +1,6 @@
 import numpy as np
 from PIL import Image
 import os
-from scipy import misc
 
 import caffe
 import time
@@ -31,6 +30,10 @@ def segment_database():
     for i in bar(range(n)):
         filename = file_list[i]
         path = os.path.join(img_dir, filename)
+        name = filename.split('.')[0]
+        dst_path = os.path.join(seg_dir, name + '.bmp')
+        if os.path.isfile(dst_path):
+            continue
         # load image, switch to BGR, subtract mean, and make dims C x H x W for Caffe
         im = Image.open(path)
         in_ = np.array(im, dtype=np.float32)
@@ -50,8 +53,7 @@ def segment_database():
             for j in range(n):
                 img[i, j] = colors[out[i,j]]
                 # print(labels[out[i, j]])
-        name = filename.split('.')[0]
-        dst_path = os.path.join(seg_dir, name+'.bmp')
+
         res_img = Image.fromarray(img)
         res_img.save(dst_path)
 
