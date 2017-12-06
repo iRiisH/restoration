@@ -1,5 +1,13 @@
-import numpy as np
+from scipy import misc
+import matplotlib.pyplot as plt
 import cv2
+import numpy as np
+import os
+
+
+def imshow(img):
+    plt.imshow(img)
+    plt.show()
 
 
 def chrominance2rgb(grayscale, chrominance):
@@ -11,6 +19,7 @@ def chrominance2rgb(grayscale, chrominance):
 
 
 def rgb2chrominance(img):
+    print(img.shape)
     yuv = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
     grayscale = yuv[:, :, 0]
     chrominance = yuv[:, :, 1:]
@@ -18,18 +27,7 @@ def rgb2chrominance(img):
 
 
 if __name__ == '__main__':
-    chrominance = cv2.imread('test1.png')
-    grayscale = cv2.imread('test3.png', 0)
-    rgb = cv2.imread('test2.png')
+    rgb = misc.imread(os.path.join(os.getcwd(), '4.jpg'))
     grayscale, chrominance = rgb2chrominance(rgb)
-    sh = rgb.shape
-    mid = np.zeros(sh[:2], dtype=np.uint8)
-    for i in range(sh[0]):
-        for j in range(sh[1]):
-            mid[i, j] = 200
-    print(mid.shape)
-    cr_show = chrominance2rgb(mid, chrominance)
     res = chrominance2rgb(grayscale, chrominance)
-    cv2.imshow('test2', res)
-    cv2.imshow('test', cr_show)
-    cv2.waitKey(0)
+    imshow(res)

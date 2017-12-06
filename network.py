@@ -1,7 +1,8 @@
 import tensorflow as tf
-import os
 import time
 import random as rd
+
+from consts import *
 
 
 def weight_variable(shape):

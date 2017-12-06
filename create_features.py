@@ -1,5 +1,3 @@
-import numpy as np
-import os
 from scipy import misc
 from skimage.feature import daisy
 from consts import *
