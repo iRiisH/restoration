@@ -8,6 +8,15 @@ COLORS = [(255, 0, 0), (102, 51, 51), (229, 130, 115), (178, 71, 0), (102, 41, 0
               (217, 163, 213), (102, 77, 100), (128, 0, 102), (255, 0, 170), (242, 0, 97), (242, 121, 170),
               (166, 0, 22)]
 
+
+def rgb_to_int(cols):
+    """ convert m X n X 3 img to m X n array """
+    r, g, b = cols[:, 0], cols[:, 1], cols[:, 2]
+    return r + 256*g + (256*256)*b
+
+
+COLORS_INT = sorted(rgb_to_int(np.array(COLORS)))
+
 COLORS_INDEX = {}
 for i in range(len(COLORS)):
     COLORS_INDEX[COLORS[i]] = i
@@ -18,5 +27,7 @@ IMG_DIR = os.path.join(os.getcwd(), 'data', 'SiftFlowDataSet', 'Images',
                            'spatial_envelope_256x256_static_8outdoorcategories')
 
 SEG_DIR = os.path.join(os.getcwd(), 'data', 'segmented')
+
+LOG_DIR = os.path.join(os.getcwd(), 'log')
 
 MEAN = np.array((104.00698793, 116.66876762, 122.67891434))

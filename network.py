@@ -1,10 +1,3 @@
-"""
-implements a siamese neural network, in order to learn a similarity metric over
-features extracted from existing neural net (in this case inception v.3), that
-will later be used to generalize the k-NN classification algorithm
-"""
-
-
 import tensorflow as tf
 import os
 import time
@@ -63,8 +56,8 @@ class NeuralNet:
         with tf.name_scope('output'):
             self.out = self.create_model(self.input, self.keep_prob)
             with tf.name_scope('cost'):
-                self.cross_entropy = tf.reduce_mean(-tf.reduce_sum(self.out * tf.log(self.out),
-                                                                   reduction_indices=[1]))
+                self.cross_entropy = tf.reduce_mean(
+                    tf.nn.softmax_cross_entropy_with_logits(labels=self.colored_pixels, logits=self.out))
 
         with tf.name_scope('train'):
             loss_op = self.loss()
@@ -72,10 +65,10 @@ class NeuralNet:
 
     def create_model(self, input, keep_prob):
         with tf.name_scope('fc1') as _:
-            fc1w = tf.Variable(tf.truncated_normal([self.btneck_shape, 1024],
+            fc1w = tf.Variable(tf.truncated_normal([self.btneck_shape, 57],
                                                    dtype=tf.float32,
                                                    stddev=1e-1), name='weights')
-            fc1b = tf.Variable(tf.constant(1.0, shape=[1024], dtype=tf.float32),
+            fc1b = tf.Variable(tf.constant(1.0, shape=[57], dtype=tf.float32),
                                trainable=True, name='biases')
             fc1l = tf.nn.bias_add(tf.matmul(input, fc1w), fc1b)
             self.fc1 = tf.nn.relu(fc1l)
@@ -83,10 +76,10 @@ class NeuralNet:
 
         # fc2
         with tf.name_scope('fc2') as _:
-            fc2w = tf.Variable(tf.truncated_normal([1024, 1024],
+            fc2w = tf.Variable(tf.truncated_normal([57, 57],
                                                    dtype=tf.float32,
                                                    stddev=1e-1), name='weights')
-            fc2b = tf.Variable(tf.constant(1.0, shape=[1024], dtype=tf.float32),
+            fc2b = tf.Variable(tf.constant(1.0, shape=[57], dtype=tf.float32),
                                trainable=True, name='biases')
             fc2l = tf.nn.bias_add(tf.matmul(self.drop1, fc2w), fc2b)
             self.fc2 = tf.nn.relu(fc2l)
@@ -94,38 +87,22 @@ class NeuralNet:
 
         # fc3
         with tf.name_scope('fc3') as _:
-            fc3w = tf.Variable(tf.truncated_normal([1024, 1024],
+            fc3w = tf.Variable(tf.truncated_normal([57, 57],
                                                    dtype=tf.float32,
                                                    stddev=1e-1), name='weights')
-            fc3b = tf.Variable(tf.constant(1.0, shape=[1024], dtype=tf.float32),
+            fc3b = tf.Variable(tf.constant(1.0, shape=[57], dtype=tf.float32),
                                trainable=True, name='biases')
             self.fc3 = tf.nn.bias_add(tf.matmul(self.drop2, fc3w), fc3b)
             self.drop3 = tf.nn.dropout(self.fc3, keep_prob)
 
         with tf.name_scope('fc4') as _:
-            fc4w = tf.Variable(tf.truncated_normal([1024, 50],
+            fc4w = tf.Variable(tf.truncated_normal([57, 2],
                                                    dtype=tf.float32,
                                                    stddev=1e-1), name='weights')
-            fc4b = tf.Variable(tf.constant(1.0, shape=[50], dtype=tf.float32),
+            fc4b = tf.Variable(tf.constant(1.0, shape=[2], dtype=tf.float32),
                                trainable=True, name='biases')
             self.fc4l = tf.nn.bias_add(tf.matmul(self.drop3, fc4w), fc4b)
         return self.fc4l
-
-    def loss(self):
-        alpha_val = 2.77
-        q_val = 5.
-        with tf.name_scope('loss'):
-            is_diff = self.label
-            is_sim = tf.subtract(1., self.label)
-            loss_sim = tf.multiply(2./q_val, tf.multiply(self.energy, self.energy))
-            # if Y = 0 (ie. img1 and img2 belong to the same class), the smaller the energy the better
-
-            loss_diff = tf.multiply(2.*q_val, tf.exp(tf.multiply(-alpha_val/q_val, self.energy)))
-            self.loss = tf.reduce_mean(tf.add(tf.multiply(is_diff, loss_diff), tf.multiply(is_sim, loss_sim)),
-                                       name='loss')
-        tf.summary.scalar('loss', self.loss)
-        self.merged = tf.summary.merge_all()
-        return self.loss
 
 
     def train(self, sess, max_it=8000):

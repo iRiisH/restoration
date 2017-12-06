@@ -9,3 +9,4 @@
 .idea/*
 data/*
 PSPNet/__pycache__/*
+log/*

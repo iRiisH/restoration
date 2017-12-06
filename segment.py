@@ -1,23 +1,17 @@
-import numpy as np
 from PIL import Image
-import os
 
 import caffe
 import time
 import matplotlib.pyplot as plt
 import progressbar
 
-MEAN = np.array((104.00698793, 116.66876762, 122.67891434))
-
-colors = [(255,0,0), (102,51,51), (229,130,115), (178,71,0), (102,41,0), (255,166,64), (115,96,57), (202,217,0), (95,102,0), (238,242,182), (113,179,89), (77,102,77), (0,255,34), (0,255,170), (35,140,105), (191,255,234), (0,190,204), (0,77,115), (61,182,242), (182,214,242), (77,90,102), (0,31,115), (102,129,204), (92,51,204), (204,0,255), (218,121,242), (217,163,213), (102,77,100), (128,0,102), (255,0,170), (242,0,97), (242,121,170), (166,0,22)]
-labels = ['awning', 'balcony', 'bird', 'boat', 'bridge', 'building', 'bus', 'car', 'cow', 'crosswalk', 'desert', 'door', 'fence', 'field', 'grass', 'moon', 'mountain', 'person', 'plant', 'pole', 'river', 'road', 'rock', 'sand', 'sea', 'sidewalk', 'sign', 'sky', 'staircase', 'streetlight', 'sun', 'tree', 'window']
+from consts import *
 
 
 def segment_database():
     file_list = []
     img_dir = os.path.join(os.getcwd(), 'data', 'SiftFlowDataset', 'Images', 'spatial_envelope_256x256_static_8outdoorcategories')
     seg_dir = os.path.join(os.getcwd(), 'data', 'segmented')
-    # TODO: fill file_list
     with open('list.txt', 'r') as f:
         for line in f:
             file_list.append(line[:-1])
@@ -31,7 +25,7 @@ def segment_database():
         filename = file_list[i]
         path = os.path.join(img_dir, filename)
         name = filename.split('.')[0]
-        dst_path = os.path.join(seg_dir, name + '.bmp')
+        dst_path = os.path.join(seg_dir, name + '.bmp')  # bmp -> no compression, to avoid creating artifacts
         if os.path.isfile(dst_path):
             continue
         # load image, switch to BGR, subtract mean, and make dims C x H x W for Caffe
@@ -49,10 +43,10 @@ def segment_database():
         out = net.blobs['score_sem'].data[0].argmax(axis=0)
         m, n = out.shape
         img = np.zeros((m, n, 3), dtype=np.uint8)
-        for i in range(m):
-            for j in range(n):
-                img[i, j] = colors[out[i,j]]
-                # print(labels[out[i, j]])
+        for k in range(m):
+            for l in range(n):
+                img[k, l] = COLORS[out[k, l]]
+                # print(labels[out[k, l]])
 
         res_img = Image.fromarray(img)
         res_img.save(dst_path)
