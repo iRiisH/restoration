@@ -1,8 +1,6 @@
-from scipy import misc
 from skimage.feature import daisy
-from consts import *
 from utils import *
-
+import random as rd
 
 def compute_daisy(img):
     """ computes DAISY features of the image """
@@ -22,7 +20,7 @@ def compute_neighb(img):
         for j in range(n):
             neighb = padd_img[i:i+7, j:j+7]
             res[i, j] = neighb.reshape(49)
-    return res
+    return res / 255.
 
 
 def compute_seg(network, img):
@@ -74,6 +72,15 @@ def compute_features(img, filename=None, net=None):
     return feats.reshape((m*n, feats.shape[2]))
 
 
+def normalize(feats):
+    # normalize features
+    stddev = STD_FEATS
+    for i in range(33):
+        # features corresponding to the segmentation are already formatted, the do not need to be normalized
+        stddev[len(stddev)-1-i] = 1.
+    return (feats - MEAN_FEATS) / stddev
+
+
 def load_feats(filename):
     """ returns features + chrominance ground truth value for a given filename """
     print('Loading {}...'.format(filename))
@@ -81,9 +88,33 @@ def load_feats(filename):
     img = misc.imread(os.path.join(IMG_DIR, filename))
     m, n = img.shape[:2]
     _, chrominance = rgb2chrominance(img)
-    chrominance = chrominance.reshape((m*n, 2))
-    return features, chrominance
+    chrominance = chrominance.reshape((m*n, 2)) / 255.
+    return normalize(features), chrominance
+
+
+def estimate_moments():
+    """ estimates mean & stddev of the features distribution. As computing features is
+    quite long, we only compute moments over 50 images"""
+    res = []
+    files = []
+    with open('trainval.txt', 'r') as f:
+        for line in f:
+            files.append(line[:-1])
+    rd.shuffle(files)
+
+    for filename in files[:50]:
+        feats,_ = load_feats(filename)
+        res.append(feats)
+    arr = np.array(res).reshape((len(res)*256*256, 114))
+    mean, std = np.mean(arr, axis=0), np.std(arr, axis=0)
+    print('MEAN')
+    for x in mean:
+        print(x)
+    print('STD')
+    for x in std:
+        print(x)
 
 
 if __name__ == '__main__':
-    get_seg('coast_cdmc969.bmp')
+    # get_seg('coast_cdmc969.bmp')
+    estimate_moments()

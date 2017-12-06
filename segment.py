@@ -8,6 +8,11 @@ import progressbar
 from consts import *
 
 
+def segment_image():
+    print('')
+    # TODO
+
+
 def segment_database():
     file_list = []
     img_dir = os.path.join(os.getcwd(), 'data', 'SiftFlowDataset', 'Images', 'spatial_envelope_256x256_static_8outdoorcategories')

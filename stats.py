@@ -37,10 +37,9 @@ def to_ind(arr):
 
 def convert(img):
     """ convert RGB img to list of int corresponding to the segmentation values """
-    # we have to be resourceful to avoid crossing entire images through loops, otherwise
-    # the process will be highly inefficient
+    # converting images without heavely slowing down the entire process is a bit tricky
+    # in python, this is why this method might seem strange
     m, n = img.shape[:2]
-    cols = img.reshape((m*n, 3))
     img_int = rgb_to_int(img.reshape((m*n, 3)))
     indices = np.searchsorted(COLORS_INT, img_int)  # we need to be clever for the pro
     return indices
