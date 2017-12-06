@@ -1,6 +1,5 @@
 import tensorflow as tf
 import time
-import random as rd
 
 from create_features import *
 
@@ -65,7 +64,7 @@ class NeuralNet:
                 # configure the network for tensorboard use
                 tf.summary.scalar('cross_entropy', self.cross_entropy)
                 self.merged = tf.summary.merge_all()
-            self.train_step = tf.train.AdamOptimizer(self.learning_rate).minimize(self.cross_entropy)
+            self.train_step = tf.train.GradientDescentOptimizer(self.learning_rate).minimize(self.cross_entropy)
 
     def create_model(self, input, keep_prob):
         with tf.name_scope('fc1') as _:
@@ -99,14 +98,24 @@ class NeuralNet:
             self.fc3 = tf.nn.bias_add(tf.matmul(self.drop2, fc3w), fc3b)
             self.drop3 = tf.nn.dropout(self.fc3, keep_prob)
 
+        # fc4
         with tf.name_scope('fc4') as _:
-            fc4w = tf.Variable(tf.truncated_normal([57, 2],
+            fc4w = tf.Variable(tf.truncated_normal([57, 57],
                                                    dtype=tf.float32,
                                                    stddev=1e-1), name='weights')
-            fc4b = tf.Variable(tf.constant(1.0, shape=[2], dtype=tf.float32),
+            fc4b = tf.Variable(tf.constant(1.0, shape=[57], dtype=tf.float32),
                                trainable=True, name='biases')
-            self.fc4l = tf.nn.bias_add(tf.matmul(self.drop3, fc4w), fc4b)
-        return self.fc4l
+            self.fc4 = tf.nn.bias_add(tf.matmul(self.drop3, fc4w), fc4b)
+            self.drop4 = tf.nn.dropout(self.fc4, keep_prob)
+
+        with tf.name_scope('fc5') as _:
+            fc5w = tf.Variable(tf.truncated_normal([57, 2],
+                                                   dtype=tf.float32,
+                                                   stddev=1e-1), name='weights')
+            fc5b = tf.Variable(tf.constant(1.0, shape=[2], dtype=tf.float32),
+                               trainable=True, name='biases')
+            self.fc5l = tf.nn.bias_add(tf.matmul(self.drop4, fc5w), fc5b)
+        return self.fc5l
 
     def train(self, sess, cat, max_it=8000):
         """
@@ -141,6 +150,7 @@ class NeuralNet:
                 # pick random pixel on the image as batch
                 ind = [rd.randint(0, len(features) - 1) for _ in range(batch_size)]
                 y = [features[i] for i in ind]
+
                 y_ = [ground_truth[i] for i in ind]
                 dropout_rate = 0.5  # since we're training
                 cnt += 1
@@ -163,19 +173,19 @@ class NeuralNet:
                                    feed_dict={self.input: y,
                                               self.ground_truth: y_,
                                               self.keep_prob: 1.
-                                              })
+                                              })[0]
                 valid_writer.add_summary(summary, k)
 
                 print('Iteration No. {:4d}: VALIDATION STEP'.format(k))
                 ckpt = (k % save_every_n_it == 0 and k > 0)
                 if ckpt:
                     print('Saving checkpoint...')
-                    saver.save(sess, os.path.join(LOG_DIR, 'model_siam', 'model'), global_step=k)
+                    saver.save(sess, os.path.join(LOG_DIR, 'model', 'model'), global_step=k)
 
 
 if __name__ == '__main__':
     sess = tf.Session()
     net = NeuralNet()
-    net.train(sess, 'coast', max_it=5000)
+    net.train(sess, 'coast', max_it=50000)
     # net = Siamese()
     # net.train(sess, max_it=20000)
