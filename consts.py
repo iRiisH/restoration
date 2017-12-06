@@ -23,7 +23,7 @@ for i in range(len(COLORS)):
 
 LABELS = ['awning', 'balcony', 'bird', 'boat', 'bridge', 'building', 'bus', 'car', 'cow', 'crosswalk', 'desert', 'door', 'fence', 'field', 'grass', 'moon', 'mountain', 'person', 'plant', 'pole', 'river', 'road', 'rock', 'sand', 'sea', 'sidewalk', 'sign', 'sky', 'staircase', 'streetlight', 'sun', 'tree', 'window']
 
-IMG_DIR = os.path.join(os.getcwd(), 'data', 'SiftFlowDataSet', 'Images',
+IMG_DIR = os.path.join(os.getcwd(), 'data', 'SiftFlowDataset', 'Images',
                            'spatial_envelope_256x256_static_8outdoorcategories')
 
 SEG_DIR = os.path.join(os.getcwd(), 'data', 'segmented')

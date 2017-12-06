@@ -1,6 +1,7 @@
 from scipy import misc
 from skimage.feature import daisy
 from consts import *
+from utils import *
 
 
 def compute_daisy(img):
@@ -34,11 +35,11 @@ def get_seg(filename):
     in_path = os.path.join(SEG_DIR, filename)
     img = misc.imread(in_path)
     m, n = img.shape[:2]
-    seg_res = np.zeros((m, n), dtype=np.int)
+    seg_res = np.zeros((m, n, len(LABELS)), dtype=np.float)
     for i in range(m):
         for j in range(n):
             r, g, b = img[i, j]
-            seg_res[i, j] = COLORS_INDEX[(r, g, b)]
+            seg_res[i, j, COLORS_INDEX[(r, g, b)]] = 1.
     return seg_res
 
 
@@ -47,7 +48,7 @@ def compute_features(img, filename=None, net=None):
     if a filename is provided """
     if filename is not None:
         if img is None:
-            img = misc.imread(os.path.join(IMG_DIR, filename))
+            img = misc.imread(os.path.join(IMG_DIR, filename), mode='L')
         name = filename.split('.')[0]
         seg = get_seg(name+'.bmp')
     else:
@@ -64,13 +65,24 @@ def compute_features(img, filename=None, net=None):
         seg = net.blobs['score_sem'].data[0].argmax(axis=0)
 
     m, n = img.shape[:2]
-    print('segmentation done')
+    # print('segmentation done')
     neighb = compute_neighb(img)
-    print('neighbourhood created')
+    # print('neighbourhood created')
     daisy = compute_daisy(img)
-    print('daisy done')
+    # print('daisy done')
     feats = np.concatenate((neighb, daisy, seg), axis=2)
     return feats.reshape((m*n, feats.shape[2]))
+
+
+def load_feats(filename):
+    """ returns features + chrominance ground truth value for a given filename """
+    print('Loading {}...'.format(filename))
+    features = compute_features(None, filename)
+    img = misc.imread(os.path.join(IMG_DIR, filename))
+    m, n = img.shape[:2]
+    _, chrominance = rgb2chrominance(img)
+    chrominance = chrominance.reshape((m*n, 2))
+    return features, chrominance
 
 
 if __name__ == '__main__':
