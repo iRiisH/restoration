@@ -5,7 +5,7 @@ from consts import *
 
 
 def imshow(img):
-    plt.imshow(img)
+    plt.imshow(img, cmap='gray')
     plt.show()
 
 
@@ -35,17 +35,32 @@ def get_train_dict():
     return res
 
 
+def draw(chrominance):
+    m, n = chrominance.shape[:2]
+    lum = 125 * np.ones((m, n, 1), dtype=np.uint8)
+    cmp = np.concatenate((lum, chrominance), axis=2)
+    rgb = cv2.cvtColor(cmp, cv2.COLOR_YUV2RGB)
+    return rgb
+
+
 if __name__ == '__main__':
-    rgb = misc.imread(os.path.join(os.getcwd(), '4.jpg'))
-    grayscale, chrominance = rgb2chrominance(rgb)
-    print(chrominance.shape)
-    print(np.max(chrominance[:, :, 0]))
-    print(np.max(chrominance[:, :, 1]))
-    print(np.max(grayscale))
-    res = chrominance2rgb(grayscale, chrominance)
-    imshow(res)
+    # rgb = misc.imread(os.path.join(os.getcwd(), '4.jpg'))
+    # grayscale, chrominance = rgb2chrominance(rgb)
+    # print(chrominance.shape)
+    # print(np.max(chrominance[:, :, 0]))
+    # print(np.max(chrominance[:, :, 1]))
+    # print(np.max(grayscale))
+    # res = chrominance2rgb(grayscale, chrominance)
+    # imshow(res)
+
     # f1, c1 = load_feats('coast_bea1.jpg')
     # f2, c2 = load_feats('coast_bea3.jpg')
     # res_f = np.concatenate((f1, f2), axis=0)
     # res_c = np.concatenate((c1, c2), axis=0)
     # print(res_f.shape, res_c.shape)
+    rgb = misc.imread(os.path.join(os.getcwd(), '4.jpg'))
+    lum, chrom = rgb2chrominance(rgb)
+    rep = draw(chrom)
+    misc.imsave('1.png', rgb)
+    misc.imsave('2.png', lum)
+    misc.imsave('3.png', rep)

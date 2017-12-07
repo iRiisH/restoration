@@ -45,7 +45,7 @@ class NeuralNet:
     """
     def __init__(self):
         self.btneck_shape = 114
-        self.learning_rate = 0.001
+        self.learning_rate = 0.0001
 
         with tf.name_scope('input'):
             self.input = tf.placeholder(dtype=tf.float32, shape=[None, self.btneck_shape],
@@ -54,17 +54,15 @@ class NeuralNet:
                                                  name='ref_value')
             self.keep_prob = tf.placeholder(dtype=tf.float32, name='keep_prob')
         with tf.name_scope('output'):
-            self.out = self.create_model(self.input, self.keep_prob)
-            self.chrominance = tf.nn.softmax(self.out)
+            self.chrominance = tf.nn.sigmoid(self.create_model(self.input, self.keep_prob))
         with tf.name_scope('train'):
             with tf.name_scope('cost'):
-                # uses stable tf softmax directly inside cost function
-                self.cross_entropy = tf.reduce_mean(
-                    tf.nn.softmax_cross_entropy_with_logits(labels=self.ground_truth, logits=self.out))
+                self.loss = tf.reduce_mean(tf.reduce_sum(tf.square(tf.subtract(self.chrominance, self.ground_truth)),
+                                                         reduction_indices=[1]))
                 # configure the network for tensorboard use
-                tf.summary.scalar('cross_entropy', self.cross_entropy)
+                tf.summary.scalar('l2_loss', self.loss)
                 self.merged = tf.summary.merge_all()
-            self.train_step = tf.train.GradientDescentOptimizer(self.learning_rate).minimize(self.cross_entropy)
+            self.train_step = tf.train.GradientDescentOptimizer(self.learning_rate).minimize(self.loss)
 
     def create_model(self, input, keep_prob):
         with tf.name_scope('fc1') as _:
@@ -123,7 +121,7 @@ class NeuralNet:
         score.
         """
         # init
-        date_str = date()
+        date_str = cat + '_' + date()
         saver = tf.train.Saver(max_to_keep=1)
         train_writer = tf.summary.FileWriter(os.path.join(LOG_DIR, 'train'+date_str), sess.graph)
         valid_writer = tf.summary.FileWriter(os.path.join(LOG_DIR, 'valid'+date_str))
@@ -180,7 +178,7 @@ class NeuralNet:
                 ckpt = (k % save_every_n_it == 0 and k > 0)
                 if ckpt:
                     print('Saving checkpoint...')
-                    saver.save(sess, os.path.join(LOG_DIR, 'model', 'model'), global_step=k)
+                    saver.save(sess, os.path.join(LOG_DIR, 'model'+cat, 'model'), global_step=k)
 
 
 if __name__ == '__main__':

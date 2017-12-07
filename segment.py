@@ -15,8 +15,7 @@ def segment_image():
 
 def segment_database():
     file_list = []
-    img_dir = os.path.join(os.getcwd(), 'data', 'SiftFlowDataset', 'Images', 'spatial_envelope_256x256_static_8outdoorcategories')
-    seg_dir = os.path.join(os.getcwd(), 'data', 'segmented')
+
     with open('list.txt', 'r') as f:
         for line in f:
             file_list.append(line[:-1])
@@ -28,9 +27,9 @@ def segment_database():
     n = len(file_list)
     for i in bar(range(n)):
         filename = file_list[i]
-        path = os.path.join(img_dir, filename)
+        path = os.path.join(IMG_DIR, filename)
         name = filename.split('.')[0]
-        dst_path = os.path.join(seg_dir, name + '.bmp')  # bmp -> no compression, to avoid creating artifacts
+        dst_path = os.path.join(SEG_DIR, name + '.bmp')  # bmp -> no compression, to avoid creating artifacts
         if os.path.isfile(dst_path):
             continue
         # load image, switch to BGR, subtract mean, and make dims C x H x W for Caffe
