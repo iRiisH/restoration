@@ -24,9 +24,10 @@ def rgb2chrominance(img):
     return grayscale, chrominance
 
 
-def get_train_dict():
+def get_file_dict(mode):
+    """ returns dictionary of category -> filenames. mode is either trainval or test"""
     res = {}
-    with open('trainval.txt', 'r') as f:
+    with open('{}.txt'.format(mode), 'r') as f:
         for line in f:
             cat = line.split('_')[0]
             if cat not in res:

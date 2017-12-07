@@ -45,7 +45,7 @@ class NeuralNet:
     """
     def __init__(self):
         self.btneck_shape = 114
-        self.learning_rate = 0.0001
+        self.learning_rate = 1e-4
 
         with tf.name_scope('input'):
             self.input = tf.placeholder(dtype=tf.float32, shape=[None, self.btneck_shape],
@@ -54,7 +54,7 @@ class NeuralNet:
                                                  name='ref_value')
             self.keep_prob = tf.placeholder(dtype=tf.float32, name='keep_prob')
         with tf.name_scope('output'):
-            self.chrominance = tf.nn.sigmoid(self.create_model(self.input, self.keep_prob))
+            self.chrominance = tf.nn.sigmoid(self.create_model(self.input, self.keep_prob), name='chrominance')
         with tf.name_scope('train'):
             with tf.name_scope('cost'):
                 self.loss = tf.reduce_mean(tf.reduce_sum(tf.square(tf.subtract(self.chrominance, self.ground_truth)),
@@ -126,7 +126,7 @@ class NeuralNet:
         train_writer = tf.summary.FileWriter(os.path.join(LOG_DIR, 'train'+date_str), sess.graph)
         valid_writer = tf.summary.FileWriter(os.path.join(LOG_DIR, 'valid'+date_str))
         tf.global_variables_initializer().run(session=sess)
-        train_dict = get_train_dict()
+        train_dict = get_file_dict('trainval')
         img_list = train_dict[cat]
         n_img = len(img_list)
         valid_list, train_list = img_list[:n_img/5], img_list[n_img/5:]
@@ -150,7 +150,7 @@ class NeuralNet:
                 y = [features[i] for i in ind]
 
                 y_ = [ground_truth[i] for i in ind]
-                dropout_rate = 0.5  # since we're training
+                dropout_rate = 0.  # since we're training
                 cnt += 1
                 summary, _ = sess.run([self.merged, self.train_step],
                                       feed_dict={self.input: y,
@@ -181,9 +181,45 @@ class NeuralNet:
                     saver.save(sess, os.path.join(LOG_DIR, 'model'+cat, 'model'), global_step=k)
 
 
+def test_model(cat):
+    file_dict = get_file_dict('test')
+    test_list = file_dict[cat]
+    model_dir = os.path.join(os.getcwd(), 'weights', 'model{}'.format(cat))
+    save_it = 0
+    for file in os.listdir(model_dir):
+        name, ext = file.split('.')
+        if ext == 'meta':
+            save_it = int(name.split('-')[1])
+            break
+    with tf.Session() as sess:
+        saver = tf.train.import_meta_graph(os.path.join(model_dir, 'model-{}.meta'.format(save_it)))
+        saver.restore(sess, tf.train.latest_checkpoint(model_dir))
+        graph = tf.get_default_graph()
+        input = graph.get_tensor_by_name('input/input:0')
+        # ground_truth = graph.get_tensor_by_name('input/img2:0')
+        keep_prob = graph.get_tensor_by_name('input/keep_prob:0')
+        chrominance = graph.get_tensor_by_name('output/chrominance:0')
+        print('-> Restored saved graph.')
+        filename = test_list[rd.randint(0, len(test_list)-1)]
+        lum = misc.imread(os.path.join(IMG_DIR, filename), mode='L')
+        feats, _ = load_feats(filename)
+        chrom = sess.run(chrominance, feed_dict={input: feats,
+                                                 keep_prob: 1.})
+
+        m, n = 256, 256
+        res_chrom = np.zeros((m, n, 2), dtype=np.uint8)
+        for i in range(m):
+            for j in range(n):
+                res_chrom[i, j, 0] = int(255. * chrom[i*m+j, 0])
+                res_chrom[i, j, 1] = int(255. * chrom[i*m+j, 1])
+        rgb = chrominance2rgb(lum, res_chrom)
+        imshow(rgb)
+
+
 if __name__ == '__main__':
     sess = tf.Session()
     net = NeuralNet()
-    net.train(sess, 'coast', max_it=50000)
+    net.train(sess, 'coast', max_it=1000000)
+    # test_model('coast')
     # net = Siamese()
     # net.train(sess, max_it=20000)
