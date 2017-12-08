@@ -4,9 +4,15 @@ from stats import *
 
 
 def train():
-    sess = tf.Session()
-    net = NeuralNet()
-    net.train(sess, 'forest', max_it=50000)
+    """ straightforward training over Sift Flow "natural" clusters """
+    for cat in get_clusters():
+        if cat == 'coast':
+            continue
+        sess = tf.Session()
+        net = NeuralNet()
+        file_dict = get_file_dict('trainval')
+        file_list = file_dict[cat]
+        net.train(sess, file_list, cat, max_it=30000)
 
 
 def adaptative_clustering(cat):
@@ -32,9 +38,11 @@ def adaptative_clustering(cat):
 
 
 if __name__ == '__main__':
-    # train()
+    train()
+
     # img = test_model('coast_land334.jpg', 'coast')
     # imshow(img)
-    img_list = adaptative_clustering('coast')
-    for filename in img_list:
-        print(filename)
+
+    # img_list = adaptative_clustering('coast')
+    # for filename in img_list:
+    #     print(filename)

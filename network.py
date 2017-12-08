@@ -213,13 +213,20 @@ def test_model(filename, cat):
                 res_chrom[i, j, 0] = int(255. * chrom[i*m+j, 0])
                 res_chrom[i, j, 1] = int(255. * chrom[i*m+j, 1])
         rgb = chrominance2rgb(lum, res_chrom)
+        misc.imsave('1.png', orig_img)
+        misc.imsave('2.png', rgb)
+        misc.imsave('3.png',draw(gt_chrom))
+        misc.imsave('4.png',draw(res_chrom))
         return rgb
 
 
 if __name__ == '__main__':
-    sess = tf.Session()
-    net = NeuralNet()
-    net.train(sess, 'coast', max_it=50000)
-    # test_model('coast')
+    # sess = tf.Session()
+    # net = NeuralNet()
+    # net.train(sess, 'coast', max_it=50000)
+    cat = 'forest'
+    train_dict = get_file_dict('test')
+    filename = train_dict[cat][rd.randint(0, len(train_dict[cat])-1)]
+    test_model(filename, cat)
     # net = Siamese()
     # net.train(sess, max_it=20000)
