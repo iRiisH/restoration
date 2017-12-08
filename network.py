@@ -55,10 +55,12 @@ class NeuralNet:
             self.keep_prob = tf.placeholder(dtype=tf.float32, name='keep_prob')
         with tf.name_scope('output'):
             self.chrominance = tf.nn.sigmoid(self.create_model(self.input, self.keep_prob), name='chrominance')
+            self.mean, self.std = tf.nn.moments(self.chrominance, axes=[0])
+            tf.summary.scalar('standard_deviation', tf.reduce_mean(self.std))
         with tf.name_scope('train'):
             with tf.name_scope('cost'):
-                self.loss = tf.reduce_mean(tf.reduce_sum(tf.square(tf.subtract(self.chrominance, self.ground_truth)),
-                                                         reduction_indices=[1]))
+                self.loss = tf.reduce_sum(tf.reduce_sum(tf.square(tf.subtract(self.chrominance, self.ground_truth)),
+                                                        reduction_indices=[1]))
                 # configure the network for tensorboard use
                 tf.summary.scalar('l2_loss', self.loss)
                 self.merged = tf.summary.merge_all()
@@ -115,7 +117,7 @@ class NeuralNet:
             self.fc5l = tf.nn.bias_add(tf.matmul(self.drop4, fc5w), fc5b)
         return self.fc5l
 
-    def train(self, sess, cat, max_it=8000):
+    def train(self, sess, img_list, cat, max_it=8000):
         """
         trains the network for max_it iterations, regularly saves it and computes validation
         score.
@@ -126,11 +128,10 @@ class NeuralNet:
         train_writer = tf.summary.FileWriter(os.path.join(LOG_DIR, 'train'+date_str), sess.graph)
         valid_writer = tf.summary.FileWriter(os.path.join(LOG_DIR, 'valid'+date_str))
         tf.global_variables_initializer().run(session=sess)
-        train_dict = get_file_dict('trainval')
-        img_list = train_dict[cat]
+
         n_img = len(img_list)
         valid_list, train_list = img_list[:n_img/5], img_list[n_img/5:]
-        batch_size = 50
+        batch_size = 100
         test_batch_size = 200
         save_every_n_it = 1000
 
@@ -141,7 +142,7 @@ class NeuralNet:
         for k in range(1, max_it+1):
             test = k % 100 == 0
             if not test:
-                if cnt >= 100:
+                if cnt >= 500:
                     # update features using a new image
                     features, ground_truth = load_feats(train_list[rd.randint(0, len(train_list) - 1)])
                     cnt = 0
@@ -150,7 +151,7 @@ class NeuralNet:
                 y = [features[i] for i in ind]
 
                 y_ = [ground_truth[i] for i in ind]
-                dropout_rate = 0.  # since we're training
+                dropout_rate = 0.5  # since we're training
                 cnt += 1
                 summary, _ = sess.run([self.merged, self.train_step],
                                       feed_dict={self.input: y,
@@ -181,10 +182,8 @@ class NeuralNet:
                     saver.save(sess, os.path.join(LOG_DIR, 'model'+cat, 'model'), global_step=k)
 
 
-def test_model(cat):
-    file_dict = get_file_dict('test')
-    test_list = file_dict[cat]
-    model_dir = os.path.join(os.getcwd(), 'weights', 'model{}'.format(cat))
+def test_model(filename, cat):
+    model_dir = os.path.join(os.getcwd(), 'log', 'model{}'.format(cat))
     save_it = 0
     for file in os.listdir(model_dir):
         name, ext = file.split('.')
@@ -200,11 +199,12 @@ def test_model(cat):
         keep_prob = graph.get_tensor_by_name('input/keep_prob:0')
         chrominance = graph.get_tensor_by_name('output/chrominance:0')
         print('-> Restored saved graph.')
-        filename = test_list[rd.randint(0, len(test_list)-1)]
         lum = misc.imread(os.path.join(IMG_DIR, filename), mode='L')
+        orig_img = misc.imread(os.path.join(IMG_DIR, filename))
         feats, _ = load_feats(filename)
         chrom = sess.run(chrominance, feed_dict={input: feats,
                                                  keep_prob: 1.})
+        gt_chrom = rgb2chrominance(orig_img)[1]
 
         m, n = 256, 256
         res_chrom = np.zeros((m, n, 2), dtype=np.uint8)
@@ -213,13 +213,13 @@ def test_model(cat):
                 res_chrom[i, j, 0] = int(255. * chrom[i*m+j, 0])
                 res_chrom[i, j, 1] = int(255. * chrom[i*m+j, 1])
         rgb = chrominance2rgb(lum, res_chrom)
-        imshow(rgb)
+        return rgb
 
 
 if __name__ == '__main__':
     sess = tf.Session()
     net = NeuralNet()
-    net.train(sess, 'coast', max_it=1000000)
+    net.train(sess, 'coast', max_it=50000)
     # test_model('coast')
     # net = Siamese()
     # net.train(sess, max_it=20000)

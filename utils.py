@@ -6,10 +6,12 @@ from consts import *
 
 def imshow(img):
     plt.imshow(img, cmap='gray')
+    # cmap=gray to avoid taking fancy colormaps if img has only one channel
     plt.show()
 
 
 def chrominance2rgb(grayscale, chrominance):
+    """ YUV -> RGB """
     gr_shape = grayscale.shape
     grayscale = grayscale.reshape((gr_shape[0], gr_shape[1], 1))
     yuv = np.concatenate((grayscale, chrominance), axis=2)
@@ -18,6 +20,7 @@ def chrominance2rgb(grayscale, chrominance):
 
 
 def rgb2chrominance(img):
+    """ RGB -> YUV """
     yuv = cv2.cvtColor(img, cv2.COLOR_RGB2YUV)
     grayscale = yuv[:, :, 0]
     chrominance = yuv[:, :, 1:]
@@ -37,11 +40,29 @@ def get_file_dict(mode):
 
 
 def draw(chrominance):
+    """ transforms chrominance into RGB image with Y (luminance) taken constant """
     m, n = chrominance.shape[:2]
     lum = 125 * np.ones((m, n, 1), dtype=np.uint8)
     cmp = np.concatenate((lum, chrominance), axis=2)
     rgb = cv2.cvtColor(cmp, cv2.COLOR_YUV2RGB)
     return rgb
+
+
+def chrominance_refinement(lum, chrom):
+    """ chrominance refinement of the predicted chrominance guided by the target grayscale image """
+    m, n = chrom.shape[:2]
+    res = np.zeros((m, n, 2), dtype=np.uint8)
+    cv2.jointBilateralFilter(lum, chrom, res, 9, 75, 75)
+    return res
+
+
+def psnr(img1, img2):
+    """ returns Peak signal-to-noise ratio between the two images """
+    d = 255.
+    mse = float(np.mean((img1-img2)**2))
+    if mse == 0.:
+        mse = 0.001
+    return 10. * np.log10((d*d)/mse)
 
 
 if __name__ == '__main__':
